@@ -2,21 +2,13 @@ use std::path::{Path, PathBuf};
 use std::{env, fs, io};
 
 use cursive::traits::*;
-use cursive::views::{Dialog, DummyView, LinearLayout, ResizedView, ScrollView, SelectView};
+use cursive::views::{Dialog, LinearLayout, ResizedView, ScrollView, SelectView};
 use cursive::{Cursive, CursiveRunnable};
 
 const MUSIC_FOLDER: &str = "documents/music";
 
 fn main() -> io::Result<()> {
-    let mut app = create_app();
-
-    let layout = LinearLayout::horizontal()
-        .child(create_list_items("Artists", load_files(None)?))
-        .child(create_list_empty("Albums"))
-        .child(create_list_empty("Songs"))
-        .full_screen();
-
-    app.add_fullscreen_layer(layout);
+    let mut app = create_app()?;
     app.run();
     Ok(())
 }
@@ -49,25 +41,28 @@ fn load_files(folder: Option<String>) -> Result<Vec<String>, io::Error> {
     Ok(list)
 }
 
-fn create_app() -> CursiveRunnable {
+fn create_app() -> Result<CursiveRunnable, io::Error> {
     let mut siv = cursive::default();
     siv.add_global_callback('q', |s| s.quit());
     siv.set_theme(cursive::theme::Theme::terminal_default());
 
-    siv
+    let layout = LinearLayout::horizontal()
+        .child(create_list("Artists", load_files(None)?))
+        .child(create_list("Albums", vec![]))
+        .child(create_list("Songs", vec![]))
+        .full_screen();
+
+    siv.add_fullscreen_layer(layout);
+
+    Ok(siv)
 }
 
-fn create_list_empty(title: &str) -> ResizedView<Dialog> {
-    Dialog::around(ScrollView::new(DummyView))
-        .title(title)
-        .full_screen()
-}
-
-fn create_list_items(title: &str, contents: Vec<String>) -> ResizedView<Dialog> {
+fn create_list(title: &str, contents: Vec<String>) -> ResizedView<Dialog> {
     let select = SelectView::new()
         .with_inactive_highlight(false)
         .with_all_str(contents)
-        .on_submit(select_item);
+        .on_submit(select_item)
+        .with_name(title);
 
     Dialog::around(ScrollView::new(select))
         .title(title)
@@ -75,5 +70,8 @@ fn create_list_items(title: &str, contents: Vec<String>) -> ResizedView<Dialog> 
 }
 
 fn select_item(siv: &mut Cursive, choice: &String) {
-    siv.quit();
+    siv.call_on_name("Albums", |view: &mut SelectView| {
+        view.clear();
+        view.add_all_str(load_files(Some(choice.clone())).unwrap());
+    });
 }
