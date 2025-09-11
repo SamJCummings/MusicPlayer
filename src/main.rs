@@ -50,6 +50,7 @@ fn create_app() -> Result<CursiveRunnable, io::Error> {
         .child(create_list("Artists", load_files(None)?))
         .child(create_list("Albums", vec![]))
         .child(create_list("Songs", vec![]))
+        .with_name("Layout")
         .full_screen();
 
     siv.add_fullscreen_layer(layout);
@@ -70,8 +71,13 @@ fn create_list(title: &str, contents: Vec<String>) -> ResizedView<Dialog> {
 }
 
 fn select_item(siv: &mut Cursive, choice: &String) {
+    let focus = siv
+        .call_on_name("Layout", |view: &mut LinearLayout| view.get_focus_index())
+        .unwrap();
+
     siv.call_on_name("Albums", |view: &mut SelectView| {
         view.clear();
         view.add_all_str(load_files(Some(choice.clone())).unwrap());
+        view.add_item_str(focus.to_string());
     });
 }
