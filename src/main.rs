@@ -60,7 +60,6 @@ fn create_app() -> Result<CursiveRunnable, io::Error> {
 
 fn create_list(title: &str, contents: Vec<String>) -> ResizedView<Dialog> {
     let select = SelectView::new()
-        .with_inactive_highlight(false)
         .with_all_str(contents)
         .on_submit(select_item)
         .with_name(title);
@@ -75,9 +74,28 @@ fn select_item(siv: &mut Cursive, choice: &String) {
         .call_on_name("Layout", |view: &mut LinearLayout| view.get_focus_index())
         .unwrap();
 
-    siv.call_on_name("Albums", |view: &mut SelectView| {
-        view.clear();
-        view.add_all_str(load_files(Some(choice.clone())).unwrap());
-        view.add_item_str(focus.to_string());
-    });
+    match focus {
+        0 => {
+            siv.call_on_name("Albums", |view: &mut SelectView<String>| {
+                view.clear();
+                view.add_all_str(load_files(Some(choice.clone())).unwrap());
+            });
+            siv.call_on_name("Layout", |view: &mut LinearLayout| view.set_focus_index(1));
+        }
+        1 => {
+            let prev_choice = siv
+                .call_on_name("Artists", |view: &mut SelectView<String>| -> String {
+                    let id = view.selected_id().unwrap();
+                    view.get_item(id).unwrap().1.to_string()
+                })
+                .unwrap();
+            siv.call_on_name("Songs", |view: &mut SelectView<String>| {
+                view.clear();
+                view.add_all_str(load_files(Some(prev_choice + "/" + choice)).unwrap());
+            });
+
+            siv.call_on_name("Layout", |view: &mut LinearLayout| view.set_focus_index(2));
+        }
+        _ => {}
+    }
 }
