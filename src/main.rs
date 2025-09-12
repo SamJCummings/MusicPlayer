@@ -77,8 +77,9 @@ fn select_item(siv: &mut Cursive, choice: &String) {
     match focus {
         0 => {
             siv.call_on_name("Albums", |view: &mut SelectView<String>| {
+                let contents = load_files(Some(choice.clone())).unwrap();
                 view.clear();
-                view.add_all_str(load_files(Some(choice.clone())).unwrap());
+                view.add_all_str(contents)
             });
             siv.call_on_name("Layout", |view: &mut LinearLayout| view.set_focus_index(1));
         }
@@ -86,7 +87,8 @@ fn select_item(siv: &mut Cursive, choice: &String) {
             let prev_choice = siv
                 .call_on_name("Artists", |view: &mut SelectView<String>| -> String {
                     let id = view.selected_id().unwrap();
-                    view.get_item(id).unwrap().1.to_string()
+                    let item = view.get_item(id).unwrap();
+                    item.1.to_string()
                 })
                 .unwrap();
             siv.call_on_name("Songs", |view: &mut SelectView<String>| {
