@@ -2,7 +2,7 @@ use std::path::{Path, PathBuf};
 use std::{env, fs, io};
 
 use cursive::traits::*;
-use cursive::views::{Dialog, LinearLayout, ResizedView, ScrollView, SelectView};
+use cursive::views::{Dialog, LinearLayout, OnEventView, ResizedView, ScrollView, SelectView};
 use cursive::{Cursive, CursiveRunnable};
 
 const MUSIC_FOLDER: &str = "documents/music";
@@ -58,14 +58,16 @@ fn create_app() -> Result<CursiveRunnable, io::Error> {
     Ok(siv)
 }
 
-fn create_list(title: &str, contents: Vec<String>) -> ResizedView<Dialog> {
+fn create_list(title: &str, contents: Vec<String>) -> ResizedView<OnEventView<Dialog>> {
     let select = SelectView::new()
         .with_all_str(contents)
         .on_submit(select_item)
         .with_name(title);
 
-    Dialog::around(ScrollView::new(select))
-        .title(title)
+    let dialog = Dialog::around(ScrollView::new(select)).title(title);
+
+    OnEventView::new(dialog)
+        .on_event(cursive::event::Key::Left, clear_list)
         .full_screen()
 }
 
@@ -79,7 +81,7 @@ fn select_item(siv: &mut Cursive, choice: &String) {
             siv.call_on_name("Albums", |view: &mut SelectView<String>| {
                 let contents = load_files(Some(choice.clone())).unwrap();
                 view.clear();
-                view.add_all_str(contents)
+                view.add_all_str(contents);
             });
             siv.call_on_name("Layout", |view: &mut LinearLayout| view.set_focus_index(1));
         }
@@ -91,12 +93,33 @@ fn select_item(siv: &mut Cursive, choice: &String) {
                     item.1.to_string()
                 })
                 .unwrap();
+
+            let full_choice = Some(prev_choice + "/" + choice);
+
             siv.call_on_name("Songs", |view: &mut SelectView<String>| {
                 view.clear();
-                view.add_all_str(load_files(Some(prev_choice + "/" + choice)).unwrap());
+                view.add_all_str(load_files(full_choice).unwrap());
             });
 
             siv.call_on_name("Layout", |view: &mut LinearLayout| view.set_focus_index(2));
+        }
+        _ => {}
+    }
+}
+
+fn clear_list(siv: &mut Cursive) {
+    let focus = siv
+        .call_on_name("Layout", |view: &mut LinearLayout| view.get_focus_index())
+        .unwrap();
+
+    match focus {
+        1 => {
+            siv.call_on_name("Albums", |view: &mut SelectView<String>| view.clear());
+            siv.call_on_name("Layout", |view: &mut LinearLayout| view.set_focus_index(0));
+        }
+        2 => {
+            siv.call_on_name("Songs", |view: &mut SelectView<String>| view.clear());
+            siv.call_on_name("Layout", |view: &mut LinearLayout| view.set_focus_index(1));
         }
         _ => {}
     }
