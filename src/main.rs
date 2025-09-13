@@ -67,7 +67,7 @@ fn create_list(title: &str, contents: Vec<String>) -> ResizedView<OnEventView<Di
     let dialog = Dialog::around(ScrollView::new(select)).title(title);
 
     OnEventView::new(dialog)
-        .on_event(cursive::event::Key::Left, clear_list)
+        .on_event(cursive::event::Key::Backspace, clear_list)
         .full_screen()
 }
 
