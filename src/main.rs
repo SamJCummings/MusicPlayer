@@ -5,6 +5,8 @@ use cursive::traits::*;
 use cursive::views::{Dialog, LinearLayout, OnEventView, ResizedView, ScrollView, SelectView};
 use cursive::{Cursive, CursiveRunnable};
 
+use rodio::OutputStreamBuilder;
+
 const MUSIC_FOLDER: &str = "documents/music";
 
 fn main() -> io::Result<()> {
@@ -102,6 +104,34 @@ fn select_item(siv: &mut Cursive, choice: &String) {
             });
 
             siv.call_on_name("Layout", |view: &mut LinearLayout| view.set_focus_index(2));
+        }
+        2 => {
+            let artist = siv
+                .call_on_name("Artists", |view: &mut SelectView<String>| {
+                    let id = view.selected_id().unwrap();
+                    let item = view.get_item(id).unwrap();
+                    item.1.to_string()
+                })
+                .unwrap();
+            let album = siv
+                .call_on_name("Albums", |view: &mut SelectView<String>| {
+                    let id = view.selected_id().unwrap();
+                    let item = view.get_item(id).unwrap();
+                    item.1.to_string()
+                })
+                .unwrap();
+
+            let track = artist + "/" + &album + "/" + choice;
+            let mut path = env::home_dir().unwrap();
+            path.push(MUSIC_FOLDER.to_string());
+            path.push(&track);
+
+            let sh = OutputStreamBuilder::open_default_stream().unwrap();
+            let sink = rodio::Sink::connect_new(sh.mixer());
+            let file = std::fs::File::open(path).unwrap();
+
+            sink.append(rodio::Decoder::try_from(file).unwrap());
+            sink.sleep_until_end();
         }
         _ => {}
     }
