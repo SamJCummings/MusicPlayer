@@ -1,5 +1,5 @@
 use std::path::{Path, PathBuf};
-use std::{env, fs, io};
+use std::{env, fs, io, thread};
 
 use cursive::traits::*;
 use cursive::views::{Dialog, LinearLayout, OnEventView, ResizedView, ScrollView, SelectView};
@@ -126,12 +126,14 @@ fn select_item(siv: &mut Cursive, choice: &String) {
             path.push(MUSIC_FOLDER.to_string());
             path.push(&track);
 
-            let sh = OutputStreamBuilder::open_default_stream().unwrap();
-            let sink = rodio::Sink::connect_new(sh.mixer());
-            let file = std::fs::File::open(path).unwrap();
+            thread::spawn(move || {
+                let sh = OutputStreamBuilder::open_default_stream().unwrap();
+                let sink = rodio::Sink::connect_new(sh.mixer());
+                let file = std::fs::File::open(path).unwrap();
 
-            sink.append(rodio::Decoder::try_from(file).unwrap());
-            sink.sleep_until_end();
+                sink.append(rodio::Decoder::try_from(file).unwrap());
+                sink.sleep_until_end();
+            });
         }
         _ => {}
     }
