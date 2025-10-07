@@ -7,7 +7,7 @@ use cursive::{Cursive, CursiveRunnable};
 
 use rodio::OutputStreamBuilder;
 
-const MUSIC_FOLDER: &str = "documents/music";
+const MUSIC_FOLDER: &str = "music";
 
 fn main() -> io::Result<()> {
     let mut app = create_app()?;
